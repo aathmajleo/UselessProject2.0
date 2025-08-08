@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tape is Must</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #fffaf6;
+        text-align: center;                                                                                                                                                                                                                             
+        margin: 0;
+        padding: 20px;
+    }
+    h1 {
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    .drop-zone {
+        border: 3px dashed black;
+        border-radius: 12px;
+        padding: 20px;
+        min-height: 150px;
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        background: #f7fbff;
+        margin-bottom: 20px;
+    }
+    .drop-zone.hover {
+        background: #e3f2fd;
+        border-color: #007bff;
+    }
+    .tape-counter {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+        font-size: 18px;
+    }
+    .tape-counter img {
+        width: 40px;
+        height: auto;
+        margin-right: 10px;
+    }
+    .carousel-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    .arrow {
+        font-size: 30px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .carousel {
+        display: flex;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        gap: 15px;
+        padding: 10px;
+        width: calc(6 * 80px + 5 * 15px + 20px); /* 6 items * 80px width + 5 gaps * 15px + 20px padding */
+        max-width: calc(6 * 80px + 5 * 15px + 20px);
+        min-width: calc(6 * 80px + 5 * 15px + 20px);
+    }
+    .carousel::-webkit-scrollbar {
+        display: none;
+    }
+    .jar {
+        min-width: 80px;
+        cursor: grab;
+    }
+    .jar-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 14px;
+    }
+    .add-jar-button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 10px 0;
+        transition: background-color 0.3s;
+    }
+    .add-jar-button:hover {
+        background: #0056b3;
+    }
+    .popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    .popup {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        width: 90%;
+    }
+    .popup h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #333;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+    }
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .form-group input:focus {
+        outline: none;
+        border-color: #007bff;
+    }
+    .popup-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    .popup-button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s;
+    }
+    .popup-button.primary {
+        background: #007bff;
+        color: white;
+    }
+    .popup-button.primary:hover {
+        background: #0056b3;
+    }
+    .popup-button.secondary {
+        background: #6c757d;
+        color: white;
+    }
+    .popup-button.secondary:hover {
+        background: #545b62;
+    }
+    .error-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+    }
+</style>
+</head>
+<body>
+
+
+
+<div class="drop-zone" id="dropZone">
+    drag and drop here
+</div>
+
+<div class="tape-counter">
+    <img src="tape.png" alt="Tape roll">
+    <span>number of rolls: <span id="rollCount">0</span></span>
+</div>
+
+<div class="carousel-container">
+    <div class="arrow" onclick="scrollCarousel(-1)">&#10094;</div>
+    <div class="carousel" id="carousel">
+        <img src="jar1.png" class="jar" draggable="true" data-id="jar1" data-rolls="2">
+        <img src="jar2.png" class="jar" draggable="true" data-id="jar2" data-rolls="3">
+        <img src="jar3.png" class="jar" draggable="true" data-id="jar3" data-rolls="1">
+        <img src="jar4.png" class="jar" draggable="true" data-id="jar4" data-rolls="4">
+        <img src="jar5.png" class="jar" draggable="true" data-id="jar5" data-rolls="2">
+    </div>
+    <div class="arrow" onclick="scrollCarousel(1)">&#10095;</div>
+</div>
+
+<button class="add-jar-button" onclick="showAddJarPopup()">Add New Jar</button>
+
+<!-- Popup for adding new jar -->
+<div class="popup-overlay" id="popupOverlay">
+    <div class="popup">
+        <h3>Add New Jar</h3>
+        <form id="addJarForm">
+            <div class="form-group">
+                <label for="jarFile">Choose Jar Image:</label>
+                <input type="file" id="jarFile" accept="image/*" required>
+                <div class="error-message" id="fileError">Please select a valid image file.</div>
+            </div>
+            <div class="form-group">
+                <label for="rollLength">Roll Length:</label>
+                <input type="number" id="rollLength" step="0.1" min="0.1" required placeholder="Enter roll length (e.g., 2.5)">
+                <div class="error-message" id="rollError">Please enter a valid number (integer or decimal).</div>
+            </div>
+            <div class="popup-buttons">
+                <button type="button" class="popup-button secondary" onclick="closePopup()">Cancel</button>
+                <button type="submit" class="popup-button primary">Add Jar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const rollCount = document.getElementById('rollCount');
+    const carousel = document.getElementById('carousel');
+
+    let rolls = 0;
+    let jarStacks = {}; // Stores { jarId: {count, rolls, element} }
+
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('hover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('hover');
+    });
+
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('hover');
+
+        const jarId = e.dataTransfer.getData('id');
+        const jarSrc = e.dataTransfer.getData('src');
+        const jarRolls = parseInt(e.dataTransfer.getData('rolls'));
+
+        if (jarStacks[jarId]) {
+            // Increase quantity
+            jarStacks[jarId].count += 1;
+            jarStacks[jarId].element.querySelector('.count').textContent = `x${jarStacks[jarId].count}`;
+        } else {
+            // Create new stack
+            const wrapper = document.createElement('div');
+            wrapper.className = 'jar-stack';
+
+            const img = document.createElement('img');
+            img.src = jarSrc;
+            img.style.width = '50px';
+
+            const count = document.createElement('div');
+            count.className = 'count';
+            count.textContent = 'x1';
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(count);
+            dropZone.appendChild(wrapper);
+
+            jarStacks[jarId] = { count: 1, rolls: jarRolls, element: wrapper };
+        }
+
+        // Update total rolls
+        rolls += jarRolls;
+        rollCount.textContent = rolls;
+    });
+
+    document.querySelectorAll('.jar').forEach(jar => {
+        jar.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('id', jar.dataset.id);
+            e.dataTransfer.setData('src', jar.src);
+            e.dataTransfer.setData('rolls', jar.dataset.rolls);
+        });
+    });
+
+    function scrollCarousel(direction) {
+        // Calculate the width of one item (80px) plus gap (15px) = 95px
+        const itemWidth = 95;
+        carousel.scrollBy({ left: direction * itemWidth, behavior: 'smooth' });
+        
+        // Update the current scroll position for auto-scroll tracking
+        setTimeout(() => {
+            currentScrollPosition = carousel.scrollLeft;
+        }, 300);
+    }
+
+    // Auto-scroll carousel
+    let autoScrollInterval;
+    let isAutoScrolling = true;
+    let currentScrollPosition = 0;
+
+    function startAutoScroll() {
+        autoScrollInterval = setInterval(() => {
+            if (isAutoScrolling) {
+                const itemWidth = 95; // Width of one item + gap
+                const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+                
+                // Check if we've reached the end of the carousel
+                if (carousel.scrollLeft >= maxScroll - 10) { // Small buffer for smooth transition
+                    // Smoothly loop back to the beginning
+                    carousel.scrollTo({ left: 0, behavior: 'smooth' });
+                    currentScrollPosition = 0;
+                } else {
+                    // Scroll to next item
+                    currentScrollPosition += itemWidth;
+                    carousel.scrollTo({ left: currentScrollPosition, behavior: 'smooth' });
+                }
+            }
+        }, 2000); // Scroll every 2 seconds for smoother looping
+    }
+
+    function stopAutoScroll() {
+        isAutoScrolling = false;
+    }
+
+    function resumeAutoScroll() {
+        isAutoScrolling = true;
+    }
+
+    // Pause auto-scroll when user hovers over carousel
+    carousel.addEventListener('mouseenter', stopAutoScroll);
+    carousel.addEventListener('mouseleave', resumeAutoScroll);
+    
+    // Track scroll position for auto-scroll
+    carousel.addEventListener('scroll', () => {
+        currentScrollPosition = carousel.scrollLeft;
+    });
+
+    // Start auto-scroll when page loads
+    startAutoScroll();
+
+    // Popup functionality
+    const popupOverlay = document.getElementById('popupOverlay');
+    const addJarForm = document.getElementById('addJarForm');
+    const jarFileInput = document.getElementById('jarFile');
+    const rollLengthInput = document.getElementById('rollLength');
+    const fileError = document.getElementById('fileError');
+    const rollError = document.getElementById('rollError');
+
+    function showAddJarPopup() {
+        popupOverlay.style.display = 'flex';
+        // Reset form
+        addJarForm.reset();
+        hideErrors();
+    }
+
+    function closePopup() {
+        popupOverlay.style.display = 'none';
+        hideErrors();
+    }
+
+    function hideErrors() {
+        fileError.style.display = 'none';
+        rollError.style.display = 'none';
+    }
+
+    function showError(element, message) {
+        element.textContent = message;
+        element.style.display = 'block';
+    }
+
+    // Close popup when clicking outside
+    popupOverlay.addEventListener('click', (e) => {
+        if (e.target === popupOverlay) {
+            closePopup();
+        }
+    });
+
+    // Handle form submission
+    addJarForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        hideErrors();
+        
+        let isValid = true;
+        
+        // Validate file
+        const file = jarFileInput.files[0];
+        if (!file) {
+            showError(fileError, 'Please select a file.');
+            isValid = false;
+        } else if (!file.type.startsWith('image/')) {
+            showError(fileError, 'Please select a valid image file.');
+            isValid = false;
+        }
+        
+        // Validate roll length
+        const rollLength = rollLengthInput.value.trim();
+        if (!rollLength) {
+            showError(rollError, 'Please enter a roll length.');
+            isValid = false;
+        } else {
+            const rollNumber = parseFloat(rollLength);
+            if (isNaN(rollNumber) || rollNumber <= 0) {
+                showError(rollError, 'Please enter a valid positive number.');
+                isValid = false;
+            }
+        }
+        
+        if (isValid) {
+            addNewJarWithFile(file, parseFloat(rollLength));
+            closePopup();
+        }
+    });
+
+    // Function to add new jar with custom file and roll length
+    function addNewJarWithFile(file, rollLength) {
+        const jarCount = carousel.children.length + 1;
+        const newJar = document.createElement('img');
+        
+        // Create object URL for the selected file
+        const imageUrl = URL.createObjectURL(file);
+        newJar.src = imageUrl;
+        newJar.className = 'jar';
+        newJar.draggable = true;
+        newJar.dataset.id = `jar${jarCount}`;
+        newJar.dataset.rolls = rollLength;
+        
+        // Add drag event listener
+        newJar.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('id', newJar.dataset.id);
+            e.dataTransfer.setData('src', newJar.src);
+            e.dataTransfer.setData('rolls', newJar.dataset.rolls);
+        });
+        
+        // Add to carousel
+        carousel.appendChild(newJar);
+        
+        // Scroll to the new jar
+        newJar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Function to add new jar to carousel (original function for backward compatibility)
+    function addNewJar() {
+        const jarCount = carousel.children.length + 1;
+        const newJar = document.createElement('img');
+        
+        // Generate a random jar image (cycling through existing ones if more than 5)
+        const jarNumber = ((jarCount - 1) % 5) + 1;
+        newJar.src = `jar${jarNumber}.png`;
+        newJar.className = 'jar';
+        newJar.draggable = true;
+        newJar.dataset.id = `jar${jarCount}`;
+        
+        // Generate random rolls between 1 and 5
+        const randomRolls = Math.floor(Math.random() * 5) + 1;
+        newJar.dataset.rolls = randomRolls;
+        
+        // Add drag event listener
+        newJar.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('id', newJar.dataset.id);
+            e.dataTransfer.setData('src', newJar.src);
+            e.dataTransfer.setData('rolls', newJar.dataset.rolls);
+        });
+        
+        // Add to carousel
+        carousel.appendChild(newJar);
+        
+        // Scroll to the new jar
+        newJar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+</script>
+
+</body>
+</html>
